@@ -588,7 +588,10 @@
 
     function openInViewer(file){
       const viewerUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(file.publicUrl);
-      readingMeta.textContent = `Lendo: ${prettyTitle(file.name)} • ${file.name.includes("/") ? file.name.split("/")[0] : "Sem categoria"}`;
+      const raw = file.name.includes("/") ? file.name.split("/")[0] : "Sem categoria";
+      const nice = raw === "Sem categoria" ? raw : displayFolderName(raw);
+      readingMeta.textContent = `Lendo: ${prettyTitle(file.name)} • ${nice}`;
+
       viewerWrap.innerHTML = `
         <iframe src="${viewerUrl}" loading="lazy" referrerpolicy="no-referrer"></iframe>
         <div class="muted" style="margin-top:10px;">
@@ -625,9 +628,9 @@
 
         const meta = document.createElement("div");
         meta.className = "meta";
-        const cat = f.name.includes("/") ? f.name.split("/")[0] : "Sem categoria";
-        const when = f.updated_at ? new Date(f.updated_at).toLocaleString() : "";
-        meta.textContent = `${cat} • ${when}`.trim();
+        const catRaw = f.name.includes("/") ? f.name.split("/")[0] : "Sem categoria";
+        const catNice = catRaw === "Sem categoria" ? catRaw : displayFolderName(catRaw);
+        meta.textContent = `${catNice} • ${when}`.trim();
 
         title.appendChild(a);
         title.appendChild(meta);

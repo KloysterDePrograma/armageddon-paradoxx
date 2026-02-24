@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Armageddon Paradoxx</title>
+  <style>
+    :root{
+      --bg: #0b0f14;
+      --panel: #101826;
+      --panel2: #0f1724;
+      --border: #1d2a3a;
+      --text: #e8eef6;
+      --muted: #a7b7cc;
+      --link: #87b6ff;
+      --btn: #2b78ff;
+      --btn2: transparent;
+      --chip: #cfe2ff;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      border-right: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel2), var(--bg));
+      padding: 18px 14px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }
+    .brand{
+      padding: 10px 10px 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .brand h1{
+      font-size: 18px;
+      margin: 0 0 6px;
+      letter-spacing: .2px;
+    }
+    .brand .muted{ font-size: 13px; color: var(--muted); }
+
+    .navgroup{
+      margin: 14px 0;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(16,24,38,.65);
+    }
+    .navgroup h2{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    .navitem{
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .navitem:hover{ background: rgba(135,182,255,.08); }
+    .navitem.active{ background: rgba(43,120,255,.18); border: 1px solid rgba(43,120,255,.35); }
+    .badge{
+      font-size: 12px;
+      color: var(--chip);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 999px;
+      align-self: center;
+      white-space: nowrap;
+    }
+
+    /* Main */
+    .main{
+      padding: 22px;
+    }
+    .topbar{
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(16,24,38,.75);
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+    }
+    .search{
+      flex: 1;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 220px;
+    }
+    .search input{
+      width: 100%;
+      background: rgba(11,15,20,.8);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: var(--text);
+      outline: none;
+    }
+    .search input:focus{
+      border-color: rgba(135,182,255,.6);
+      box-shadow: 0 0 0 3px rgba(135,182,255,.12);
+    }
+
+    .actions{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    button{
+      font: inherit;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .primary{
+      background: var(--btn);
+      border-color: rgba(43,120,255,.5);
+      color: white;
+    }
+    .ghost{
+      background: var(--btn2);
+      color: var(--text);
+    }
+    button:disabled{ opacity: .6; cursor: not-allowed; }
+
+    .grid{
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ position: relative; height: auto; }
+      .grid{ grid-template-columns: 1fr; }
+      .topbar{ position: relative; top: 0; }
+    }
+
+    .card{
+      background: rgba(16,24,38,.75);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .card h3{ margin: 0 0 8px; font-size: 16px; }
+    .muted{ color: var(--muted); font-size: 14px; }
+    .status{ min-height: 20px; margin-top: 10px; }
+
+    .list{
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .row{
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,15,20,.35);
+    }
+    .row:last-child{ border-bottom: 0; }
+    .row:hover{ background: rgba(135,182,255,.06); }
+    .row .title{
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .row .title a{
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 520px;
+    }
+    .row .meta{ font-size: 12px; color: var(--muted); }
+
+    .chips{ display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .chip{
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--chip);
+      background: rgba(16,24,38,.4);
+      white-space: nowrap;
+    }
+
+    iframe{
+      width: 100%;
+      height: 70vh;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--bg);
+    }
+
+    .uploadline{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+    input[type="file"]{
+      width: 100%;
+      background: rgba(11,15,20,.35);
+      border: 1px dashed rgba(29,42,58,.9);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: var(--muted);
+    }
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Armageddon Paradoxx</h1>
+        <div class="muted">Sua “enciclopédia” de arquivos, só que sem bibliotecário.</div>
+      </div>
+
+      <div class="navgroup">
+        <h2>Categorias</h2>
+        <div id="cats"></div>
+      </div>
+
+      <div class="navgroup">
+        <h2>Atalhos</h2>
+        <div class="navitem" id="allBtn">
+          <span>Todos os documentos</span>
+          <span class="badge" id="totalCount">0</span>
+        </div>
+        <div class="muted" style="padding: 8px;">
+          Dica: “categorias” aqui são pastas no Storage (ex.: <code>historia/</code>, <code>trabalhos/</code>).
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="search">
+          <input id="q" placeholder="Buscar documento..." />
+        </div>
+        <div class="actions">
+          <button id="refreshBtn" class="ghost">Atualizar</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h3>Upload</h3>
+          <div class="muted">Envie um .docx. Se quiser “categoria”, coloque no campo pasta.</div>
+
+          <input id="folder" placeholder="Pasta/categoria (ex: trabalhos, historia, rpg)" style="margin-top:10px; background: rgba(11,15,20,.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:var(--text); outline:none;" />
+          <input id="file" type="file" accept=".docx" />
+
+          <div class="uploadline">
+            <button id="uploadBtn" class="primary">Upload</button>
+          </div>
+
+          <div id="status" class="status muted"></div>
+
+          <div class="hint">
+            Arquivos ficam públicos se o bucket estiver público. Se você quer “apenas autorizados”, aí entra login e regras (ou seja: mais trabalho).
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>Leitor</h3>
+          <div class="muted" id="readingMeta">Selecione um documento na lista.</div>
+          <div id="viewerWrap" style="margin-top: 12px;">
+            <div class="muted">Nada aberto.</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card" style="margin-top:16px;">
+        <h3 id="listTitle">Documentos</h3>
+        <div class="muted" id="listSubtitle">Mostrando tudo.</div>
+
+        <div class="list" id="list"></div>
+        <div class="muted" id="empty" style="display:none; padding: 10px 2px;">Nenhum documento encontrado.</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // COLE AQUI
+    const SUPABASE_URL = "https://tdqqqbqmncmtozgzlpzs.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZHFxYnFtY21jdG96Z3pscHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTMzNjAsImV4cCI6MjA4NzUyOTM2MH0.uUBa3hT0gdAJVwa4Od1lAksHwoiT0lQRaCCaierpZTY";
+    const BUCKET = "docs";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const qEl = document.getElementById("q");
+    const catsEl = document.getElementById("cats");
+    const totalCountEl = document.getElementById("totalCount");
+    const allBtn = document.getElementById("allBtn");
+
+    const folderEl = document.getElementById("folder");
+    const fileInput = document.getElementById("file");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const statusEl = document.getElementById("status");
+
+    const listTitle = document.getElementById("listTitle");
+    const listSubtitle = document.getElementById("listSubtitle");
+    const listEl = document.getElementById("list");
+    const emptyEl = document.getElementById("empty");
+
+    const readingMeta = document.getElementById("readingMeta");
+    const viewerWrap = document.getElementById("viewerWrap");
+
+    let allFiles = []; // { name, updated_at, folder, publicUrl }
+    let activeFolder = ""; // "" = tudo
+
+    function setStatus(msg){ statusEl.textContent = msg || ""; }
+
+    function safeName(name){
+      return name.replace(/[^\w.\- ]+/g, "_").trim();
+    }
+    function safeFolder(folder){
+      if (!folder) return "";
+      return folder
+        .trim()
+        .replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "")
+        .replace(/[^a-zA-Z0-9_\-\/ ]+/g, "_")
+        .replace(/\s+/g, "_");
+    }
+
+    async function uploadDocx(){
+      const file = fileInput.files?.[0];
+      if (!file) return setStatus("Escolhe um .docx primeiro.");
+      if (!file.name.toLowerCase().endsWith(".docx")) return setStatus("Só aceito .docx.");
+
+      uploadBtn.disabled = true;
+      setStatus("Enviando...");
+
+      const folder = safeFolder(folderEl.value);
+      const clean = safeName(file.name);
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+
+      const path = (folder ? folder + "/" : "") + `${stamp}__${clean}`;
+
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, { upsert: false, contentType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+
+      uploadBtn.disabled = false;
+
+      if (error){
+        setStatus("Falhou no upload: " + error.message);
+        return;
+      }
+
+      setStatus("Upload feito: " + clean);
+      fileInput.value = "";
+      await refreshAll();
+    }
+
+    async function listRecursive(prefix=""){
+      // lista "pastas" e arquivos, descendo recursivamente
+      const { data, error } = await supabase.storage.from(BUCKET).list(prefix, {
+        limit: 100,
+        sortBy: { column: "name", order: "asc" }
+      });
+      if (error) throw error;
+
+      const files = [];
+      for (const item of data){
+        if (!item.name) continue;
+        const full = prefix ? `${prefix}/${item.name}` : item.name;
+
+        // Supabase marca "pastas" como items sem metadata de arquivo (heurística: sem ".docx" e sem "metadata")
+        const isDocx = full.toLowerCase().endsWith(".docx");
+        if (isDocx){
+          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(full);
+          files.push({
+            name: full,
+            updated_at: item.updated_at || item.created_at || null,
+            folder: prefix || "",
+            publicUrl: pub.publicUrl
+          });
+        } else {
+          // tenta descer como pasta (se não for arquivo docx)
+          try {
+            const sub = await listRecursive(full);
+            files.push(...sub);
+          } catch (e) {
+            // se não for pasta de verdade ou der erro, ignora
+          }
+        }
+      }
+      return files;
+    }
+
+    function buildCategories(files){
+      // pega "folder" (primeiro segmento) como categoria principal
+      const counts = new Map();
+      for (const f of files){
+        const parts = f.name.split("/");
+        const cat = (parts.length > 1) ? parts[0] : "Sem categoria";
+        counts.set(cat, (counts.get(cat) || 0) + 1);
+      }
+      // ordena: Sem categoria por último
+      const cats = [...counts.entries()].sort((a,b)=>{
+        if (a[0] === "Sem categoria") return 1;
+        if (b[0] === "Sem categoria") return -1;
+        return a[0].localeCompare(b[0]);
+      });
+
+      catsEl.innerHTML = "";
+      for (const [cat, n] of cats){
+        const div = document.createElement("div");
+        div.className = "navitem" + (activeFolder === cat ? " active" : "");
+        div.onclick = () => {
+          activeFolder = (cat === "Sem categoria") ? "__root__" : cat;
+          render();
+          highlightCats();
+        };
+
+        const left = document.createElement("span");
+        left.textContent = cat;
+
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = n;
+
+        div.appendChild(left);
+        div.appendChild(badge);
+        catsEl.appendChild(div);
+      }
+    }
+
+    function highlightCats(){
+      // reaplica active em categorias
+      [...catsEl.children].forEach(el => el.classList.remove("active"));
+      [...catsEl.children].forEach(el => {
+        const label = el.querySelector("span")?.textContent;
+        const key = (label === "Sem categoria") ? "__root__" : label;
+        if (key === activeFolder) el.classList.add("active");
+      });
+
+      allBtn.classList.toggle("active", activeFolder === "");
+    }
+
+    function filterFiles(){
+      const term = qEl.value.trim().toLowerCase();
+
+      return allFiles.filter(f => {
+        const parts = f.name.split("/");
+        const cat = (parts.length > 1) ? parts[0] : "__root__";
+
+        const folderOk = !activeFolder || cat === activeFolder;
+        const textOk = !term || f.name.toLowerCase().includes(term);
+
+        return folderOk && textOk;
+      });
+    }
+
+    function prettyTitle(path){
+      // remove timestamp__ do nome exibido
+      const base = path.split("/").pop();
+      return base.replace(/^\d{4}-\d{2}-\d{2}T.*?__/, "");
+    }
+
+    function openInViewer(file){
+      const viewerUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(file.publicUrl);
+
+      readingMeta.textContent = `Lendo: ${prettyTitle(file.name)} • ${file.name.includes("/") ? file.name.split("/")[0] : "Sem categoria"}`;
+      viewerWrap.innerHTML = `
+        <iframe src="${viewerUrl}" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        <div class="muted" style="margin-top:10px;">
+          <a href="${file.publicUrl}" target="_blank" rel="noopener">Abrir link direto</a> (para baixar ou compartilhar).
+        </div>
+      `;
+    }
+
+    function render(){
+      const filtered = filterFiles();
+
+      listEl.innerHTML = "";
+      emptyEl.style.display = filtered.length ? "none" : "block";
+
+      const folderLabel = activeFolder
+        ? (activeFolder === "__root__" ? "Sem categoria" : activeFolder)
+        : "Tudo";
+
+      listTitle.textContent = `Documentos • ${folderLabel}`;
+      listSubtitle.textContent = qEl.value.trim()
+        ? `Filtrando por: "${qEl.value.trim()}"`
+        : (activeFolder ? "Mostrando somente essa categoria." : "Mostrando tudo.");
+
+      for (const f of filtered){
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const title = document.createElement("div");
+        title.className = "title";
+
+        const a = document.createElement("a");
+        a.href = "#";
+        a.textContent = prettyTitle(f.name);
+        a.onclick = (e)=>{ e.preventDefault(); openInViewer(f); };
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const cat = f.name.includes("/") ? f.name.split("/")[0] : "Sem categoria";
+        const when = f.updated_at ? new Date(f.updated_at).toLocaleString() : "";
+        meta.textContent = `${cat} • ${when}`.trim();
+
+        title.appendChild(a);
+        title.appendChild(meta);
+
+        const chips = document.createElement("div");
+        chips.className = "chips";
+
+        const chipOpen = document.createElement("span");
+        chipOpen.className = "chip";
+        chipOpen.textContent = "Abrir";
+
+        const chipDl = document.createElement("a");
+        chipDl.className = "chip";
+        chipDl.href = f.publicUrl;
+        chipDl.target = "_blank";
+        chipDl.rel = "noopener";
+        chipDl.textContent = "Link";
+
+        chips.appendChild(chipOpen);
+        chips.appendChild(chipDl);
+
+        row.appendChild(title);
+        row.appendChild(chips);
+
+        listEl.appendChild(row);
+      }
+
+      totalCountEl.textContent = allFiles.length;
+    }
+
+    async function refreshAll(){
+      setStatus("Carregando…");
+      listEl.innerHTML = "";
+      emptyEl.style.display = "none";
+
+      try{
+        const files = await listRecursive("");
+        // ordena por updated_at desc
+        files.sort((a,b)=> (new Date(b.updated_at||0)) - (new Date(a.updated_at||0)));
+
+        allFiles = files;
+
+        // categorias
+        buildCategories(allFiles);
+        highlightCats();
+        render();
+
+        setStatus("");
+      } catch (e){
+        setStatus("Erro ao carregar: " + (e?.message || e));
+      }
+    }
+
+    // eventos
+    uploadBtn.addEventListener("click", uploadDocx);
+    refreshBtn.addEventListener("click", refreshAll);
+
+    allBtn.addEventListener("click", ()=>{
+      activeFolder = "";
+      qEl.value = "";
+      highlightCats();
+      render();
+    });
+
+    qEl.addEventListener("input", ()=> render());
+
+    // init
+    refreshAll();
+  </script>
+</body>
+</html>
+

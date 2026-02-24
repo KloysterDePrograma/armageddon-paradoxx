@@ -16,6 +16,7 @@
       --btn: #2b78ff;
       --btn2: transparent;
       --chip: #cfe2ff;
+      --danger: #ff4d4d;
     }
 
     * { box-sizing: border-box; }
@@ -171,7 +172,7 @@
     }
     .card h3{ margin: 0 0 8px; font-size: 16px; }
     .muted{ color: var(--muted); font-size: 14px; }
-    .status{ min-height: 20px; margin-top: 10px; }
+    .status{ min-height: 20px; margin-top: 10px; white-space: pre-wrap; }
 
     .list{
       margin-top: 10px;
@@ -214,6 +215,16 @@
       color: var(--chip);
       background: rgba(16,24,38,.4);
       white-space: nowrap;
+      user-select: none;
+    }
+    .chip.clickable{ cursor: pointer; }
+    .chip.danger{
+      border-color: rgba(255,77,77,.55);
+      color: #ffd1d1;
+      background: rgba(255,77,77,.08);
+    }
+    .chip.danger:hover{
+      background: rgba(255,77,77,.14);
     }
 
     iframe{
@@ -243,6 +254,16 @@
       font-size: 12px;
       color: var(--muted);
       margin-top: 8px;
+      line-height: 1.35;
+    }
+    .adminHint{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px dashed rgba(135,182,255,.35);
+      border-radius: 12px;
+      background: rgba(16,24,38,.35);
+      color: var(--muted);
+      font-size: 12px;
       line-height: 1.35;
     }
   </style>
@@ -278,6 +299,7 @@
           <input id="q" placeholder="Buscar documento..." />
         </div>
         <div class="actions">
+          <button id="adminBtn" class="ghost">Login Admin</button>
           <button id="refreshBtn" class="ghost">Atualizar</button>
         </div>
       </div>
@@ -296,8 +318,12 @@
 
           <div id="status" class="status muted"></div>
 
+          <div class="adminHint">
+            Admin: faça login pra aparecer o botão <b>Apagar</b> na lista. (Sim, humanos precisam de permissões.)
+          </div>
+
           <div class="hint">
-            Arquivos ficam públicos se o bucket estiver público. Se você quer “apenas autorizados”, aí entra login e regras (ou seja: mais trabalho).
+            Arquivos ficam públicos se o bucket estiver público. Para apagar com segurança, use policy de DELETE só para <code>authenticated</code>.
           </div>
         </section>
 
@@ -322,7 +348,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // COLE AQUI
+    // Configure aqui
     const SUPABASE_URL = "https://tqdqqbqmcmctozgzlpxs.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_eYs2DCkzhe0JlKhfRJra-Q_96_tH2i9";
     const BUCKET = "docs";
@@ -338,6 +364,7 @@
     const fileInput = document.getElementById("file");
     const uploadBtn = document.getElementById("uploadBtn");
     const refreshBtn = document.getElementById("refreshBtn");
+    const adminBtn = document.getElementById("adminBtn");
     const statusEl = document.getElementById("status");
 
     const listTitle = document.getElementById("listTitle");
@@ -350,6 +377,7 @@
 
     let allFiles = []; // { name, updated_at, folder, publicUrl }
     let activeFolder = ""; // "" = tudo
+    let currentUser = null;
 
     function setStatus(msg){ statusEl.textContent = msg || ""; }
 
@@ -364,6 +392,41 @@
         .replace(/^\/+|\/+$/g, "")
         .replace(/[^a-zA-Z0-9_\-\/ ]+/g, "_")
         .replace(/\s+/g, "_");
+    }
+
+    function updateAuthUI(){
+      if (currentUser) {
+        adminBtn.textContent = "Sair (Admin)";
+      } else {
+        adminBtn.textContent = "Login Admin";
+      }
+    }
+
+    async function checkUser(){
+      const { data } = await supabaseClient.auth.getUser();
+      currentUser = data?.user || null;
+      updateAuthUI();
+    }
+
+    async function loginAdmin(){
+      const email = prompt("Email admin:");
+      const password = prompt("Senha:");
+      if (!email || !password) return;
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert("Erro no login: " + error.message);
+        return;
+      }
+      await checkUser();
+      await refreshAll();
+    }
+
+    async function logoutAdmin(){
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      updateAuthUI();
+      await refreshAll();
     }
 
     async function uploadDocx(){
@@ -382,7 +445,10 @@
 
       const { error } = await supabaseClient.storage
         .from(BUCKET)
-        .upload(path, file, { upsert: false, contentType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        .upload(path, file, {
+          upsert: false,
+          contentType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        });
 
       uploadBtn.disabled = false;
 
@@ -396,8 +462,26 @@
       await refreshAll();
     }
 
+    async function deleteFile(fullPath){
+      if (!currentUser) {
+        alert("Você precisa estar logado como admin pra apagar.");
+        return;
+      }
+      const ok = confirm("Apagar este arquivo?\n\n" + fullPath);
+      if (!ok) return;
+
+      const { error } = await supabaseClient.storage
+        .from(BUCKET)
+        .remove([fullPath]);
+
+      if (error){
+        alert("Erro ao apagar: " + error.message);
+        return;
+      }
+      await refreshAll();
+    }
+
     async function listRecursive(prefix=""){
-      // lista "pastas" e arquivos, descendo recursivamente
       const { data, error } = await supabaseClient.storage.from(BUCKET).list(prefix, {
         limit: 100,
         sortBy: { column: "name", order: "asc" }
@@ -409,7 +493,6 @@
         if (!item.name) continue;
         const full = prefix ? `${prefix}/${item.name}` : item.name;
 
-        // Supabase marca "pastas" como items sem metadata de arquivo (heurística: sem ".docx" e sem "metadata")
         const isDocx = full.toLowerCase().endsWith(".docx");
         if (isDocx){
           const { data: pub } = supabaseClient.storage.from(BUCKET).getPublicUrl(full);
@@ -420,12 +503,11 @@
             publicUrl: pub.publicUrl
           });
         } else {
-          // tenta descer como pasta (se não for arquivo docx)
           try {
             const sub = await listRecursive(full);
             files.push(...sub);
           } catch (e) {
-            // se não for pasta de verdade ou der erro, ignora
+            // ignora
           }
         }
       }
@@ -433,14 +515,12 @@
     }
 
     function buildCategories(files){
-      // pega "folder" (primeiro segmento) como categoria principal
       const counts = new Map();
       for (const f of files){
         const parts = f.name.split("/");
         const cat = (parts.length > 1) ? parts[0] : "Sem categoria";
         counts.set(cat, (counts.get(cat) || 0) + 1);
       }
-      // ordena: Sem categoria por último
       const cats = [...counts.entries()].sort((a,b)=>{
         if (a[0] === "Sem categoria") return 1;
         if (b[0] === "Sem categoria") return -1;
@@ -471,7 +551,6 @@
     }
 
     function highlightCats(){
-      // reaplica active em categorias
       [...catsEl.children].forEach(el => el.classList.remove("active"));
       [...catsEl.children].forEach(el => {
         const label = el.querySelector("span")?.textContent;
@@ -484,27 +563,22 @@
 
     function filterFiles(){
       const term = qEl.value.trim().toLowerCase();
-
       return allFiles.filter(f => {
         const parts = f.name.split("/");
         const cat = (parts.length > 1) ? parts[0] : "__root__";
-
         const folderOk = !activeFolder || cat === activeFolder;
         const textOk = !term || f.name.toLowerCase().includes(term);
-
         return folderOk && textOk;
       });
     }
 
     function prettyTitle(path){
-      // remove timestamp__ do nome exibido
       const base = path.split("/").pop();
       return base.replace(/^\d{4}-\d{2}-\d{2}T.*?__/, "");
     }
 
     function openInViewer(file){
       const viewerUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(file.publicUrl);
-
       readingMeta.textContent = `Lendo: ${prettyTitle(file.name)} • ${file.name.includes("/") ? file.name.split("/")[0] : "Sem categoria"}`;
       viewerWrap.innerHTML = `
         <iframe src="${viewerUrl}" loading="lazy" referrerpolicy="no-referrer"></iframe>
@@ -516,7 +590,6 @@
 
     function render(){
       const filtered = filterFiles();
-
       listEl.innerHTML = "";
       emptyEl.style.display = filtered.length ? "none" : "block";
 
@@ -567,9 +640,16 @@
         chips.appendChild(chipOpen);
         chips.appendChild(chipDl);
 
+        if (currentUser) {
+          const chipDelete = document.createElement("span");
+          chipDelete.className = "chip danger clickable";
+          chipDelete.textContent = "Apagar";
+          chipDelete.onclick = () => deleteFile(f.name);
+          chips.appendChild(chipDelete);
+        }
+
         row.appendChild(title);
         row.appendChild(chips);
-
         listEl.appendChild(row);
       }
 
@@ -583,12 +663,9 @@
 
       try{
         const files = await listRecursive("");
-        // ordena por updated_at desc
         files.sort((a,b)=> (new Date(b.updated_at||0)) - (new Date(a.updated_at||0)));
-
         allFiles = files;
 
-        // categorias
         buildCategories(allFiles);
         highlightCats();
         render();
@@ -603,6 +680,11 @@
     uploadBtn.addEventListener("click", uploadDocx);
     refreshBtn.addEventListener("click", refreshAll);
 
+    adminBtn.addEventListener("click", async () => {
+      if (currentUser) await logoutAdmin();
+      else await loginAdmin();
+    });
+
     allBtn.addEventListener("click", ()=>{
       activeFolder = "";
       qEl.value = "";
@@ -613,7 +695,10 @@
     qEl.addEventListener("input", ()=> render());
 
     // init
-    refreshAll();
+    (async () => {
+      await checkUser();
+      await refreshAll();
+    })();
   </script>
 </body>
 </html>

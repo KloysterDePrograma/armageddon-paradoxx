@@ -305,8 +305,7 @@
       </div>
 
       <div class="grid">
-        <section class="card">
-          <h3>Upload</h3>
+        <section class="card" id="uploadSection">
           <div class="muted">Envie um .docx. Se quiser “categoria”, coloque no campo pasta.</div>
 
           <input id="folder" placeholder="Pasta/categoria (ex: trabalhos, historia, rpg)" style="margin-top:10px; background: rgba(11,15,20,.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:var(--text); outline:none;" />
@@ -359,6 +358,7 @@
     const catsEl = document.getElementById("cats");
     const totalCountEl = document.getElementById("totalCount");
     const allBtn = document.getElementById("allBtn");
+    const uploadSection = document.getElementById("uploadSection");
 
     const folderEl = document.getElementById("folder");
     const fileInput = document.getElementById("file");
@@ -397,8 +397,10 @@
     function updateAuthUI(){
       if (currentUser) {
         adminBtn.textContent = "Sair (Admin)";
+        uploadSection.style.display = "block";
       } else {
         adminBtn.textContent = "Login Admin";
+        uploadSection.style.display = "none";
       }
     }
 

@@ -390,8 +390,7 @@
         .trim()
         .replace(/\\/g, "/")
         .replace(/^\/+|\/+$/g, "")
-        .replace(/[^a-zA-Z0-9_\-\/ ]+/g, "_")
-        .replace(/\s+/g, "_");
+        .replace(/\s+/g, "_"); // mantém no storage como Capítulo_I
     }
 
     function displayFolderName(name){

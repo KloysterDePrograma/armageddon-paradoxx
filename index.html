@@ -4,6 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Armageddon Paradoxx</title>
+
+  <!-- Favicon: coloque favicon.png na mesma pasta do index.html -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+
   <style>
     :root{
       --bg: #0b0f14;
@@ -31,7 +36,6 @@
       min-height: 100vh;
     }
 
-    /* Sidebar */
     .sidebar{
       border-right: 1px solid var(--border);
       background: linear-gradient(180deg, var(--panel2), var(--bg));
@@ -67,6 +71,7 @@
       color: var(--muted);
       margin: 0 0 8px;
     }
+
     .navitem{
       display: flex;
       justify-content: space-between;
@@ -74,6 +79,7 @@
       padding: 8px 8px;
       border-radius: 10px;
       cursor: pointer;
+      align-items: center;
     }
     .navitem:hover{ background: rgba(135,182,255,.08); }
     .navitem.active{ background: rgba(43,120,255,.18); border: 1px solid rgba(43,120,255,.35); }
@@ -86,8 +92,23 @@
       align-self: center;
       white-space: nowrap;
     }
+    .catActions{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .catDel{
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,77,77,.55);
+      color: #ffd1d1;
+      background: rgba(255,77,77,.08);
+      cursor: pointer;
+      user-select: none;
+    }
+    .catDel:hover{ background: rgba(255,77,77,.14); }
 
-    /* Main */
     .main{
       padding: 22px;
     }
@@ -305,10 +326,12 @@
       </div>
 
       <div class="grid">
+        <!-- Upload (admin only) -->
         <section class="card" id="uploadSection">
+          <h3>Upload</h3>
           <div class="muted">Envie um .docx. Se quiser “categoria”, coloque no campo pasta.</div>
 
-          <input id="folder" placeholder="Pasta/categoria (ex: trabalhos, historia, rpg)" style="margin-top:10px; background: rgba(11,15,20,.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:var(--text); outline:none;" />
+          <input id="folder" placeholder="Pasta/categoria (ex: Capítulo I, trabalhos, historia)" style="margin-top:10px; background: rgba(11,15,20,.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:var(--text); outline:none;" />
           <input id="file" type="file" accept=".docx" />
 
           <div class="uploadline">
@@ -318,11 +341,11 @@
           <div id="status" class="status muted"></div>
 
           <div class="adminHint">
-            Admin: faça login para conseguir interagir com o site.
+            Admin: faça login para poder fazer upload e apagar arquivos/categorias.
           </div>
 
           <div class="hint">
-            Arquivos ficam públicos se o bucket estiver público. Para apagar com segurança, use policy de DELETE só para <code>authenticated</code>.
+            Para “admin-only” funcionar de verdade, o Supabase precisa ter policy de <code>INSERT</code>/<code>DELETE</code> só pra <code>authenticated</code>.
           </div>
         </section>
 
@@ -358,8 +381,8 @@
     const catsEl = document.getElementById("cats");
     const totalCountEl = document.getElementById("totalCount");
     const allBtn = document.getElementById("allBtn");
-    const uploadSection = document.getElementById("uploadSection");
 
+    const uploadSection = document.getElementById("uploadSection");
     const folderEl = document.getElementById("folder");
     const fileInput = document.getElementById("file");
     const uploadBtn = document.getElementById("uploadBtn");
@@ -375,30 +398,35 @@
     const readingMeta = document.getElementById("readingMeta");
     const viewerWrap = document.getElementById("viewerWrap");
 
-    let allFiles = []; // { name, updated_at, folder, publicUrl }
-    let activeFolder = ""; // "" = tudo
+    let allFiles = []; // { name, updated_at, publicUrl }
+    let activeFolder = ""; // "" = tudo, "__root__" = sem categoria, ou "Capítulo_I"
     let currentUser = null;
 
     function setStatus(msg){ statusEl.textContent = msg || ""; }
 
+    // Nome do arquivo: mantém simples
     function safeName(name){
       return name.replace(/[^\w.\- ]+/g, "_").trim();
     }
+
+    // Pasta/categoria:
+    // - mantém acentos (Capítulo)
+    // - troca espaços por "_" só para o path ficar consistente
+    // - remove barras no começo/fim
     function safeFolder(folder){
       if (!folder) return "";
       return folder
         .trim()
         .replace(/\\/g, "/")
         .replace(/^\/+|\/+$/g, "")
-        .replace(/\s+/g, "_"); // mantém no storage como Capítulo_I
+        .replace(/\s+/g, "_");
     }
 
+    // Exibição amigável:
+    // - mostra "_" como espaço (Capítulo_I -> Capítulo I)
     function displayFolderName(name){
-      return (name || "")
-        .replace(/_/g, " ")
-        .trim();
+      return (name || "").replace(/_/g, " ").trim();
     }
-
 
     function updateAuthUI(){
       if (currentUser) {
@@ -422,10 +450,8 @@
       if (!email || !password) return;
 
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert("Erro no login: " + error.message);
-        return;
-      }
+      if (error) return alert("Erro no login: " + error.message);
+
       await checkUser();
       await refreshAll();
     }
@@ -438,6 +464,7 @@
     }
 
     async function uploadDocx(){
+      if (!currentUser) return setStatus("Só admin pode fazer upload.");
       const file = fileInput.files?.[0];
       if (!file) return setStatus("Escolhe um .docx primeiro.");
       if (!file.name.toLowerCase().endsWith(".docx")) return setStatus("Só aceito .docx.");
@@ -448,7 +475,6 @@
       const folder = safeFolder(folderEl.value);
       const clean = safeName(file.name);
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-
       const path = (folder ? folder + "/" : "") + `${stamp}__${clean}`;
 
       const { error } = await supabaseClient.storage
@@ -460,10 +486,7 @@
 
       uploadBtn.disabled = false;
 
-      if (error){
-        setStatus("Falhou no upload: " + error.message);
-        return;
-      }
+      if (error) return setStatus("Falhou no upload: " + error.message);
 
       setStatus("Upload feito: " + clean);
       fileInput.value = "";
@@ -471,10 +494,8 @@
     }
 
     async function deleteFile(fullPath){
-      if (!currentUser) {
-        alert("Você precisa estar logado como admin pra apagar.");
-        return;
-      }
+      if (!currentUser) return alert("Você precisa estar logado como admin pra apagar.");
+
       const ok = confirm("Apagar este arquivo?\n\n" + fullPath);
       if (!ok) return;
 
@@ -482,10 +503,30 @@
         .from(BUCKET)
         .remove([fullPath]);
 
-      if (error){
-        alert("Erro ao apagar: " + error.message);
-        return;
-      }
+      if (error) return alert("Erro ao apagar: " + error.message);
+      await refreshAll();
+    }
+
+    // Deleta “categoria” = apaga todos os arquivos com prefixo "categoria/"
+    async function deleteCategory(categoryKey){
+      if (!currentUser) return alert("Só admin pode apagar categoria.");
+      if (!categoryKey || categoryKey === "__root__") return alert("Não dá pra apagar a categoria raiz.");
+
+      const nice = displayFolderName(categoryKey);
+      const ok = confirm(`Apagar TODA a categoria "${nice}"?\n\nIsso apaga todos os .docx dentro dela.`);
+      if (!ok) return;
+
+      const filesToDelete = allFiles
+        .filter(f => f.name.startsWith(categoryKey + "/"))
+        .map(f => f.name);
+
+      if (!filesToDelete.length) return alert("Categoria vazia.");
+
+      const { error } = await supabaseClient.storage
+        .from(BUCKET)
+        .remove(filesToDelete);
+
+      if (error) return alert("Erro ao apagar categoria: " + error.message);
       await refreshAll();
     }
 
@@ -507,7 +548,6 @@
           files.push({
             name: full,
             updated_at: item.updated_at || item.created_at || null,
-            folder: prefix || "",
             publicUrl: pub.publicUrl
           });
         } else {
@@ -515,7 +555,7 @@
             const sub = await listRecursive(full);
             files.push(...sub);
           } catch (e) {
-            // ignora
+            // ignora pastas que falham
           }
         }
       }
@@ -529,6 +569,7 @@
         const cat = (parts.length > 1) ? parts[0] : "Sem categoria";
         counts.set(cat, (counts.get(cat) || 0) + 1);
       }
+
       const cats = [...counts.entries()].sort((a,b)=>{
         if (a[0] === "Sem categoria") return 1;
         if (b[0] === "Sem categoria") return -1;
@@ -536,36 +577,54 @@
       });
 
       catsEl.innerHTML = "";
+
       for (const [cat, n] of cats){
+        const key = (cat === "Sem categoria") ? "__root__" : cat;
+
         const div = document.createElement("div");
-        div.className = "navitem" + (activeFolder === cat ? " active" : "");
+        div.className = "navitem" + (activeFolder === key ? " active" : "");
+        div.dataset.key = key;
+
         div.onclick = () => {
-          activeFolder = (cat === "Sem categoria") ? "__root__" : cat;
+          activeFolder = key;
           render();
           highlightCats();
         };
 
         const left = document.createElement("span");
-        left.textContent = displayFolderName(cat);
+        left.textContent = (cat === "Sem categoria") ? cat : displayFolderName(cat);
+
+        const actions = document.createElement("div");
+        actions.className = "catActions";
 
         const badge = document.createElement("span");
         badge.className = "badge";
         badge.textContent = n;
 
+        actions.appendChild(badge);
+
+        if (currentUser && cat !== "Sem categoria") {
+          const del = document.createElement("span");
+          del.className = "catDel";
+          del.textContent = "Apagar";
+          del.title = "Apagar categoria (remove todos os arquivos)";
+          del.onclick = (e) => {
+            e.stopPropagation();
+            deleteCategory(cat);
+          };
+          actions.appendChild(del);
+        }
+
         div.appendChild(left);
-        div.appendChild(badge);
+        div.appendChild(actions);
         catsEl.appendChild(div);
       }
     }
 
     function highlightCats(){
-      [...catsEl.children].forEach(el => el.classList.remove("active"));
       [...catsEl.children].forEach(el => {
-        const label = el.querySelector("span")?.textContent;
-        const key = (label === "Sem categoria") ? "__root__" : label;
-        if (key === activeFolder) el.classList.add("active");
+        el.classList.toggle("active", el.dataset.key === activeFolder);
       });
-
       allBtn.classList.toggle("active", activeFolder === "");
     }
 
@@ -573,8 +632,8 @@
       const term = qEl.value.trim().toLowerCase();
       return allFiles.filter(f => {
         const parts = f.name.split("/");
-        const cat = (parts.length > 1) ? parts[0] : "__root__";
-        const folderOk = !activeFolder || cat === activeFolder;
+        const catKey = (parts.length > 1) ? parts[0] : "__root__";
+        const folderOk = !activeFolder || catKey === activeFolder;
         const textOk = !term || f.name.toLowerCase().includes(term);
         return folderOk && textOk;
       });
@@ -605,7 +664,7 @@
       emptyEl.style.display = filtered.length ? "none" : "block";
 
       const folderLabel = activeFolder
-        ? (activeFolder === "__root__" ? "Sem categoria" : activeFolder)
+        ? (activeFolder === "__root__" ? "Sem categoria" : displayFolderName(activeFolder))
         : "Tudo";
 
       listTitle.textContent = `Documentos • ${folderLabel}`;
@@ -627,9 +686,11 @@
 
         const meta = document.createElement("div");
         meta.className = "meta";
+
         const catRaw = f.name.includes("/") ? f.name.split("/")[0] : "Sem categoria";
-        const catNice = catRaw === "Sem categoria" ? catRaw : displayFolderName(catRaw);
-        meta.textContent = `${catNice} • ${when}`.trim();
+        const catNice = (catRaw === "Sem categoria") ? catRaw : displayFolderName(catRaw);
+        const when = f.updated_at ? new Date(f.updated_at).toLocaleString() : "";
+        meta.textContent = `${catNice}${when ? " • " + when : ""}`.trim();
 
         title.appendChild(a);
         title.appendChild(meta);
@@ -638,8 +699,9 @@
         chips.className = "chips";
 
         const chipOpen = document.createElement("span");
-        chipOpen.className = "chip";
+        chipOpen.className = "chip clickable";
         chipOpen.textContent = "Abrir";
+        chipOpen.onclick = () => openInViewer(f);
 
         const chipDl = document.createElement("a");
         chipDl.className = "chip";

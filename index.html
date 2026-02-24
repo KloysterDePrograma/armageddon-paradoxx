@@ -327,7 +327,7 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZHFxYnFtY21jdG96Z3pscHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTMzNjAsImV4cCI6MjA4NzUyOTM2MH0.uUBa3hT0gdAJVwa4Od1lAksHwoiT0lQRaCCaierpZTY";
     const BUCKET = "docs";
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const qEl = document.getElementById("q");
     const catsEl = document.getElementById("cats");
@@ -380,7 +380,7 @@
 
       const path = (folder ? folder + "/" : "") + `${stamp}__${clean}`;
 
-      const { error } = await supabase.storage
+      const { error } = await supabaseClient.storage
         .from(BUCKET)
         .upload(path, file, { upsert: false, contentType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
 
@@ -398,7 +398,7 @@
 
     async function listRecursive(prefix=""){
       // lista "pastas" e arquivos, descendo recursivamente
-      const { data, error } = await supabase.storage.from(BUCKET).list(prefix, {
+      const { data, error } = await supabaseClient.storage.from(BUCKET).list(prefix, {
         limit: 100,
         sortBy: { column: "name", order: "asc" }
       });
@@ -412,7 +412,7 @@
         // Supabase marca "pastas" como items sem metadata de arquivo (heurística: sem ".docx" e sem "metadata")
         const isDocx = full.toLowerCase().endsWith(".docx");
         if (isDocx){
-          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(full);
+          const { data: pub } = supabaseClient.storage.from(BUCKET).getPublicUrl(full);
           files.push({
             name: full,
             updated_at: item.updated_at || item.created_at || null,
@@ -617,4 +617,3 @@
   </script>
 </body>
 </html>
-

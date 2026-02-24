@@ -4,11 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Armageddon Paradoxx</title>
-
-  <!-- Favicon: coloque favicon.png na mesma pasta do index.html -->
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="favicon.png">
-
   <style>
     :root{
       --bg: #0b0f14;
@@ -36,6 +31,7 @@
       min-height: 100vh;
     }
 
+    /* Sidebar */
     .sidebar{
       border-right: 1px solid var(--border);
       background: linear-gradient(180deg, var(--panel2), var(--bg));
@@ -71,7 +67,6 @@
       color: var(--muted);
       margin: 0 0 8px;
     }
-
     .navitem{
       display: flex;
       justify-content: space-between;
@@ -79,7 +74,6 @@
       padding: 8px 8px;
       border-radius: 10px;
       cursor: pointer;
-      align-items: center;
     }
     .navitem:hover{ background: rgba(135,182,255,.08); }
     .navitem.active{ background: rgba(43,120,255,.18); border: 1px solid rgba(43,120,255,.35); }
@@ -92,23 +86,8 @@
       align-self: center;
       white-space: nowrap;
     }
-    .catActions{
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .catDel{
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,77,77,.55);
-      color: #ffd1d1;
-      background: rgba(255,77,77,.08);
-      cursor: pointer;
-      user-select: none;
-    }
-    .catDel:hover{ background: rgba(255,77,77,.14); }
 
+    /* Main */
     .main{
       padding: 22px;
     }
@@ -289,58 +268,63 @@
     }
   
 
-    /* ===== Mobile polish ===== */
+    /* ===== Mobile layout (drawer + top-right actions) ===== */
+    .backdrop{
+      display:none;
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.45);
+      z-index:40;
+    }
+    body.sidebar-open .backdrop{ display:block; }
+
+    .menuBtn{
+      display:none;
+      background: rgba(16,24,38,.75);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
     @media (max-width: 980px){
       .app{ grid-template-columns: 1fr; }
       .main{ padding: 14px; }
 
       /* Sidebar vira drawer */
       .sidebar{
-        position: fixed;
+        position: fixed !important;
         z-index: 50;
         left: 0; top: 0;
-        height: 100vh;
+        height: 100vh !important;
         width: min(86vw, 340px);
         transform: translateX(-105%);
         transition: transform .22s ease;
         box-shadow: 0 10px 30px rgba(0,0,0,.45);
+        overflow: auto;
       }
-      body.sidebar-open .sidebar{
-        transform: translateX(0);
-      }
+      body.sidebar-open .sidebar{ transform: translateX(0); }
 
-      /* Backdrop quando menu aberto */
-      .backdrop{
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.45);
-        z-index: 40;
-      }
-      body.sidebar-open .backdrop{
-        display: block;
-      }
-
-      /* Topbar mais “app”, menos “mesa de controle” */
+      /* Topbar: menu à esquerda, busca no meio, botões no canto direito */
+      .menuBtn{ display:inline-flex; align-items:center; justify-content:center; }
       .topbar{
         position: sticky;
         top: 10px;
         padding: 12px;
         gap: 10px;
+        flex-direction: row !important;
+        align-items: center;
       }
-      .actions{ gap: 8px; }
-      button{ padding: 12px 12px; }
-
-      /* Barra de busca + botões em stack quando precisar */
-      .topbar{
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .search{ width: 100%; }
+      .search{ flex: 1; min-width: 0; }
+      .search input{ width: 100%; }
       .actions{
-        width: 100%;
-        justify-content: space-between;
+        margin-left: auto;
+        width: auto;
+        justify-content: flex-end;
+        gap: 8px;
       }
+      button{ padding: 12px 12px; }
 
       /* Grid vira 1 coluna */
       .grid{ grid-template-columns: 1fr; }
@@ -354,44 +338,14 @@
       .chips{ justify-content: flex-start; }
       .chip{ padding: 8px 12px; font-size: 13px; }
 
-      /* Viewer mais alto e confortável */
       iframe{ height: 64vh; }
-
-      /* Inputs maiores */
       input[type="file"]{ padding: 12px; }
-    }
-
-    /* Botão de menu (hamburger) */
-    .mobileBar{
-      display: none;
-    }
-    @media (max-width: 980px){
-      .mobileBar{
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-      }
-      .mobileTitle{
-        font-weight: 700;
-        letter-spacing: .2px;
-      }
-      .menuBtn{
-        background: rgba(16,24,38,.75);
-        border: 1px solid var(--border);
-        color: var(--text);
-        border-radius: 12px;
-        padding: 10px 12px;
-        cursor: pointer;
-      }
     }
 
   </style>
 </head>
 <body>
   <div class="backdrop" id="backdrop"></div>
-
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
@@ -417,13 +371,8 @@
     </aside>
 
     <main class="main">
-      <div class="mobileBar">
-        <button class="menuBtn" id="menuBtn">☰ Menu</button>
-        <div class="mobileTitle">Armageddon Paradoxx</div>
-        <div style="width:72px;"></div>
-      </div>
-
       <div class="topbar">
+        <button id="menuBtn" class="menuBtn" aria-label="Abrir menu">☰</button>
         <div class="search">
           <input id="q" placeholder="Buscar documento..." />
         </div>
@@ -434,12 +383,10 @@
       </div>
 
       <div class="grid">
-        <!-- Upload (admin only) -->
         <section class="card" id="uploadSection">
-          <h3>Upload</h3>
           <div class="muted">Envie um .docx. Se quiser “categoria”, coloque no campo pasta.</div>
 
-          <input id="folder" placeholder="Pasta/categoria (ex: Capítulo I, trabalhos, historia)" style="margin-top:10px; background: rgba(11,15,20,.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:var(--text); outline:none;" />
+          <input id="folder" placeholder="Pasta/categoria (ex: trabalhos, historia, rpg)" style="margin-top:10px; background: rgba(11,15,20,.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:var(--text); outline:none;" />
           <input id="file" type="file" accept=".docx" />
 
           <div class="uploadline">
@@ -449,11 +396,11 @@
           <div id="status" class="status muted"></div>
 
           <div class="adminHint">
-            Admin: faça login para poder fazer upload e apagar arquivos/categorias.
+            Admin: faça login para conseguir interagir com o site.
           </div>
 
           <div class="hint">
-            Para “admin-only” funcionar de verdade, o Supabase precisa ter policy de <code>INSERT</code>/<code>DELETE</code> só pra <code>authenticated</code>.
+            Arquivos ficam públicos se o bucket estiver público. Para apagar com segurança, use policy de DELETE só para <code>authenticated</code>.
           </div>
         </section>
 
@@ -489,8 +436,8 @@
     const catsEl = document.getElementById("cats");
     const totalCountEl = document.getElementById("totalCount");
     const allBtn = document.getElementById("allBtn");
-
     const uploadSection = document.getElementById("uploadSection");
+
     const folderEl = document.getElementById("folder");
     const fileInput = document.getElementById("file");
     const uploadBtn = document.getElementById("uploadBtn");
@@ -506,35 +453,31 @@
     const readingMeta = document.getElementById("readingMeta");
     const viewerWrap = document.getElementById("viewerWrap");
 
-    let allFiles = []; // { name, updated_at, publicUrl }
-    let activeFolder = ""; // "" = tudo, "__root__" = sem categoria, ou "Capítulo_I"
+    let allFiles = []; // { name, updated_at, folder, publicUrl }
+    let activeFolder = ""; // "" = tudo
     let currentUser = null;
 
     function setStatus(msg){ statusEl.textContent = msg || ""; }
 
-    // Nome do arquivo: mantém simples
     function safeName(name){
       return name.replace(/[^\w.\- ]+/g, "_").trim();
     }
-
-    // Pasta/categoria:
-    // - mantém acentos (Capítulo)
-    // - troca espaços por "_" só para o path ficar consistente
-    // - remove barras no começo/fim
     function safeFolder(folder){
       if (!folder) return "";
       return folder
         .trim()
         .replace(/\\/g, "/")
         .replace(/^\/+|\/+$/g, "")
+        .replace(/[^a-zA-Z0-9_\-\/ ]+/g, "_")
         .replace(/\s+/g, "_");
     }
 
-    // Exibição amigável:
-    // - mostra "_" como espaço (Capítulo_I -> Capítulo I)
     function displayFolderName(name){
-      return (name || "").replace(/_/g, " ").trim();
+      return (name || "")
+        .replace(/_/g, " ")
+        .trim();
     }
+
 
     function updateAuthUI(){
       if (currentUser) {
@@ -558,8 +501,10 @@
       if (!email || !password) return;
 
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) return alert("Erro no login: " + error.message);
-
+      if (error) {
+        alert("Erro no login: " + error.message);
+        return;
+      }
       await checkUser();
       await refreshAll();
     }
@@ -572,7 +517,6 @@
     }
 
     async function uploadDocx(){
-      if (!currentUser) return setStatus("Só admin pode fazer upload.");
       const file = fileInput.files?.[0];
       if (!file) return setStatus("Escolhe um .docx primeiro.");
       if (!file.name.toLowerCase().endsWith(".docx")) return setStatus("Só aceito .docx.");
@@ -583,6 +527,7 @@
       const folder = safeFolder(folderEl.value);
       const clean = safeName(file.name);
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+
       const path = (folder ? folder + "/" : "") + `${stamp}__${clean}`;
 
       const { error } = await supabaseClient.storage
@@ -594,7 +539,10 @@
 
       uploadBtn.disabled = false;
 
-      if (error) return setStatus("Falhou no upload: " + error.message);
+      if (error){
+        setStatus("Falhou no upload: " + error.message);
+        return;
+      }
 
       setStatus("Upload feito: " + clean);
       fileInput.value = "";
@@ -602,8 +550,10 @@
     }
 
     async function deleteFile(fullPath){
-      if (!currentUser) return alert("Você precisa estar logado como admin pra apagar.");
-
+      if (!currentUser) {
+        alert("Você precisa estar logado como admin pra apagar.");
+        return;
+      }
       const ok = confirm("Apagar este arquivo?\n\n" + fullPath);
       if (!ok) return;
 
@@ -611,30 +561,10 @@
         .from(BUCKET)
         .remove([fullPath]);
 
-      if (error) return alert("Erro ao apagar: " + error.message);
-      await refreshAll();
-    }
-
-    // Deleta “categoria” = apaga todos os arquivos com prefixo "categoria/"
-    async function deleteCategory(categoryKey){
-      if (!currentUser) return alert("Só admin pode apagar categoria.");
-      if (!categoryKey || categoryKey === "__root__") return alert("Não dá pra apagar a categoria raiz.");
-
-      const nice = displayFolderName(categoryKey);
-      const ok = confirm(`Apagar TODA a categoria "${nice}"?\n\nIsso apaga todos os .docx dentro dela.`);
-      if (!ok) return;
-
-      const filesToDelete = allFiles
-        .filter(f => f.name.startsWith(categoryKey + "/"))
-        .map(f => f.name);
-
-      if (!filesToDelete.length) return alert("Categoria vazia.");
-
-      const { error } = await supabaseClient.storage
-        .from(BUCKET)
-        .remove(filesToDelete);
-
-      if (error) return alert("Erro ao apagar categoria: " + error.message);
+      if (error){
+        alert("Erro ao apagar: " + error.message);
+        return;
+      }
       await refreshAll();
     }
 
@@ -656,6 +586,7 @@
           files.push({
             name: full,
             updated_at: item.updated_at || item.created_at || null,
+            folder: prefix || "",
             publicUrl: pub.publicUrl
           });
         } else {
@@ -663,7 +594,7 @@
             const sub = await listRecursive(full);
             files.push(...sub);
           } catch (e) {
-            // ignora pastas que falham
+            // ignora
           }
         }
       }
@@ -677,7 +608,6 @@
         const cat = (parts.length > 1) ? parts[0] : "Sem categoria";
         counts.set(cat, (counts.get(cat) || 0) + 1);
       }
-
       const cats = [...counts.entries()].sort((a,b)=>{
         if (a[0] === "Sem categoria") return 1;
         if (b[0] === "Sem categoria") return -1;
@@ -685,54 +615,36 @@
       });
 
       catsEl.innerHTML = "";
-
       for (const [cat, n] of cats){
-        const key = (cat === "Sem categoria") ? "__root__" : cat;
-
         const div = document.createElement("div");
-        div.className = "navitem" + (activeFolder === key ? " active" : "");
-        div.dataset.key = key;
-
+        div.className = "navitem" + (activeFolder === cat ? " active" : "");
         div.onclick = () => {
-          activeFolder = key;
+          activeFolder = (cat === "Sem categoria") ? "__root__" : cat;
           render();
           highlightCats();
         };
 
         const left = document.createElement("span");
-        left.textContent = (cat === "Sem categoria") ? cat : displayFolderName(cat);
-
-        const actions = document.createElement("div");
-        actions.className = "catActions";
+        left.textContent = displayFolderName(cat);
 
         const badge = document.createElement("span");
         badge.className = "badge";
         badge.textContent = n;
 
-        actions.appendChild(badge);
-
-        if (currentUser && cat !== "Sem categoria") {
-          const del = document.createElement("span");
-          del.className = "catDel";
-          del.textContent = "Apagar";
-          del.title = "Apagar categoria (remove todos os arquivos)";
-          del.onclick = (e) => {
-            e.stopPropagation();
-            deleteCategory(cat);
-          };
-          actions.appendChild(del);
-        }
-
         div.appendChild(left);
-        div.appendChild(actions);
+        div.appendChild(badge);
         catsEl.appendChild(div);
       }
     }
 
     function highlightCats(){
+      [...catsEl.children].forEach(el => el.classList.remove("active"));
       [...catsEl.children].forEach(el => {
-        el.classList.toggle("active", el.dataset.key === activeFolder);
+        const label = el.querySelector("span")?.textContent;
+        const key = (label === "Sem categoria") ? "__root__" : label;
+        if (key === activeFolder) el.classList.add("active");
       });
+
       allBtn.classList.toggle("active", activeFolder === "");
     }
 
@@ -740,8 +652,8 @@
       const term = qEl.value.trim().toLowerCase();
       return allFiles.filter(f => {
         const parts = f.name.split("/");
-        const catKey = (parts.length > 1) ? parts[0] : "__root__";
-        const folderOk = !activeFolder || catKey === activeFolder;
+        const cat = (parts.length > 1) ? parts[0] : "__root__";
+        const folderOk = !activeFolder || cat === activeFolder;
         const textOk = !term || f.name.toLowerCase().includes(term);
         return folderOk && textOk;
       });
@@ -772,7 +684,7 @@
       emptyEl.style.display = filtered.length ? "none" : "block";
 
       const folderLabel = activeFolder
-        ? (activeFolder === "__root__" ? "Sem categoria" : displayFolderName(activeFolder))
+        ? (activeFolder === "__root__" ? "Sem categoria" : activeFolder)
         : "Tudo";
 
       listTitle.textContent = `Documentos • ${folderLabel}`;
@@ -794,11 +706,9 @@
 
         const meta = document.createElement("div");
         meta.className = "meta";
-
         const catRaw = f.name.includes("/") ? f.name.split("/")[0] : "Sem categoria";
-        const catNice = (catRaw === "Sem categoria") ? catRaw : displayFolderName(catRaw);
-        const when = f.updated_at ? new Date(f.updated_at).toLocaleString() : "";
-        meta.textContent = `${catNice}${when ? " • " + when : ""}`.trim();
+        const catNice = catRaw === "Sem categoria" ? catRaw : displayFolderName(catRaw);
+        meta.textContent = `${catNice} • ${when}`.trim();
 
         title.appendChild(a);
         title.appendChild(meta);
@@ -807,9 +717,8 @@
         chips.className = "chips";
 
         const chipOpen = document.createElement("span");
-        chipOpen.className = "chip clickable";
+        chipOpen.className = "chip";
         chipOpen.textContent = "Abrir";
-        chipOpen.onclick = () => openInViewer(f);
 
         const chipDl = document.createElement("a");
         chipDl.className = "chip";
@@ -876,10 +785,9 @@
     qEl.addEventListener("input", ()=> render());
 
 
-    // ===== Mobile sidebar toggle =====
+    // ===== Mobile drawer =====
     const menuBtn = document.getElementById("menuBtn");
     const backdrop = document.getElementById("backdrop");
-
     function openSidebar(){ document.body.classList.add("sidebar-open"); }
     function closeSidebar(){ document.body.classList.remove("sidebar-open"); }
 
@@ -888,11 +796,11 @@
     });
     if (backdrop) backdrop.addEventListener("click", closeSidebar);
 
-    // Fecha menu quando escolher categoria (mobile)
-    catsEl.addEventListener("click", () => {
+    // Fecha o menu ao escolher categoria/atalho no mobile
+    if (catsEl) catsEl.addEventListener("click", () => {
       if (window.innerWidth <= 980) closeSidebar();
     });
-    allBtn.addEventListener("click", () => {
+    if (allBtn) allBtn.addEventListener("click", () => {
       if (window.innerWidth <= 980) closeSidebar();
     });
 

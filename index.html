@@ -318,7 +318,7 @@
           <div id="status" class="status muted"></div>
 
           <div class="adminHint">
-            Admin: faça login pra aparecer o botão <b>Apagar</b> na lista. (Sim, humanos precisam de permissões.)
+            Admin: faça login para conseguir interagir com o site.
           </div>
 
           <div class="hint">
@@ -393,6 +393,13 @@
         .replace(/[^a-zA-Z0-9_\-\/ ]+/g, "_")
         .replace(/\s+/g, "_");
     }
+
+    function displayFolderName(name){
+      return (name || "")
+        .replace(/_/g, " ")
+        .trim();
+    }
+
 
     function updateAuthUI(){
       if (currentUser) {
@@ -540,7 +547,7 @@
         };
 
         const left = document.createElement("span");
-        left.textContent = cat;
+        left.textContent = displayFolderName(cat);
 
         const badge = document.createElement("span");
         badge.className = "badge";

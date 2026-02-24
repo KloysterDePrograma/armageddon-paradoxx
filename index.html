@@ -287,9 +287,111 @@
       font-size: 12px;
       line-height: 1.35;
     }
+  
+
+    /* ===== Mobile polish ===== */
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .main{ padding: 14px; }
+
+      /* Sidebar vira drawer */
+      .sidebar{
+        position: fixed;
+        z-index: 50;
+        left: 0; top: 0;
+        height: 100vh;
+        width: min(86vw, 340px);
+        transform: translateX(-105%);
+        transition: transform .22s ease;
+        box-shadow: 0 10px 30px rgba(0,0,0,.45);
+      }
+      body.sidebar-open .sidebar{
+        transform: translateX(0);
+      }
+
+      /* Backdrop quando menu aberto */
+      .backdrop{
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 40;
+      }
+      body.sidebar-open .backdrop{
+        display: block;
+      }
+
+      /* Topbar mais “app”, menos “mesa de controle” */
+      .topbar{
+        position: sticky;
+        top: 10px;
+        padding: 12px;
+        gap: 10px;
+      }
+      .actions{ gap: 8px; }
+      button{ padding: 12px 12px; }
+
+      /* Barra de busca + botões em stack quando precisar */
+      .topbar{
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .search{ width: 100%; }
+      .actions{
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      /* Grid vira 1 coluna */
+      .grid{ grid-template-columns: 1fr; }
+
+      /* Lista: melhora toque */
+      .row{
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .row .title a{ max-width: 100%; }
+      .chips{ justify-content: flex-start; }
+      .chip{ padding: 8px 12px; font-size: 13px; }
+
+      /* Viewer mais alto e confortável */
+      iframe{ height: 64vh; }
+
+      /* Inputs maiores */
+      input[type="file"]{ padding: 12px; }
+    }
+
+    /* Botão de menu (hamburger) */
+    .mobileBar{
+      display: none;
+    }
+    @media (max-width: 980px){
+      .mobileBar{
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .mobileTitle{
+        font-weight: 700;
+        letter-spacing: .2px;
+      }
+      .menuBtn{
+        background: rgba(16,24,38,.75);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+      }
+    }
+
   </style>
 </head>
 <body>
+  <div class="backdrop" id="backdrop"></div>
+
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
@@ -315,6 +417,12 @@
     </aside>
 
     <main class="main">
+      <div class="mobileBar">
+        <button class="menuBtn" id="menuBtn">☰ Menu</button>
+        <div class="mobileTitle">Armageddon Paradoxx</div>
+        <div style="width:72px;"></div>
+      </div>
+
       <div class="topbar">
         <div class="search">
           <input id="q" placeholder="Buscar documento..." />
@@ -766,6 +874,28 @@
     });
 
     qEl.addEventListener("input", ()=> render());
+
+
+    // ===== Mobile sidebar toggle =====
+    const menuBtn = document.getElementById("menuBtn");
+    const backdrop = document.getElementById("backdrop");
+
+    function openSidebar(){ document.body.classList.add("sidebar-open"); }
+    function closeSidebar(){ document.body.classList.remove("sidebar-open"); }
+
+    if (menuBtn) menuBtn.addEventListener("click", () => {
+      document.body.classList.toggle("sidebar-open");
+    });
+    if (backdrop) backdrop.addEventListener("click", closeSidebar);
+
+    // Fecha menu quando escolher categoria (mobile)
+    catsEl.addEventListener("click", () => {
+      if (window.innerWidth <= 980) closeSidebar();
+    });
+    allBtn.addEventListener("click", () => {
+      if (window.innerWidth <= 980) closeSidebar();
+    });
+
 
     // init
     (async () => {

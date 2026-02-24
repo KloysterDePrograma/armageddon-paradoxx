@@ -725,18 +725,21 @@
         chipDl.href = f.publicUrl;
         chipDl.target = "_blank";
         chipDl.rel = "noopener";
-        chipDl.textContent = "Link";
+        chipDl.textContent = "Baixar";
 
         chips.appendChild(chipOpen);
         chips.appendChild(chipDl);
 
         if (currentUser) {
-          const chipDelete = document.createElement("span");
-          chipDelete.className = "chip danger clickable";
-          chipDelete.textContent = "Apagar";
-          chipDelete.onclick = () => deleteFile(f.name);
-          chips.appendChild(chipDelete);
+          const chipDownload = document.createElement("a");
+          chipDownload.className = "chip";
+          chipDownload.href = f.publicUrl;
+          chipDownload.target = "_blank";
+          chipDownload.rel = "noopener";
+          chipDownload.textContent = "Baixar";
+          chips.appendChild(chipDownload);
         }
+
 
         row.appendChild(title);
         row.appendChild(chips);
